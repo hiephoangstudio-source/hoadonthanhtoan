@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hóa Đơn Thanh Toán (Fit A4)</title>
+    <title>Hóa Đơn Thanh Toán</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
@@ -14,7 +14,7 @@
 
         body { 
             font-family: 'Times New Roman', serif; 
-            font-size: 10pt; /* Size chữ chuẩn để fit 2 liên */
+            font-size: 10pt; 
             line-height: 1.2; 
             color: #000; 
             background-color: #f0f2f5; 
@@ -37,47 +37,32 @@
             width: 210mm;
             height: 296mm; 
             background: white;
-            padding: 5mm 10mm; /* Lề in an toàn */
+            padding: 5mm 10mm; 
             display: flex;
             flex-direction: column;
             justify-content: space-between; 
         }
 
-        /* --- CẤU TRÚC 2 LIÊN --- */
-        .voucher-section {
-            height: 48%; /* Mỗi liên chiếm 48% trang */
-            display: flex;
-            flex-direction: column;
-            padding: 0 2px;
-        }
-
+        .voucher-section { height: 48%; display: flex; flex-direction: column; padding: 0 2px; }
         .middle-gap { height: 4%; display: flex; align-items: center; justify-content: center; }
         .cut-line { width: 100%; border-top: 1px dashed #000; height: 1px; }
 
-        /* --- HEADER (Khôi phục lại layout cũ) --- */
         .header-section { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        
-        /* Bên trái: Studio Info */
         .header-left { flex: 1; text-align: left; }
         .studio-name { font-weight: bold; font-size: 10.5pt; text-transform: uppercase; display: block; margin-bottom: 2px; }
         .studio-info { display: block; font-size: 9.5pt; margin-bottom: 1px; }
-
-        /* Bên phải: Số phiếu */
         .header-right { text-align: left; min-width: 140px; padding-top: 0; }
         .voucher-num-line { font-size: 10pt; margin-bottom: 2px; }
 
-        /* Tiêu đề giữa */
         .title-section { text-align: center; margin-bottom: 5px; margin-top: -10px; }
         .main-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 0; }
         .date-sub { font-style: italic; font-size: 9.5pt; margin: 1px 0; }
         .lien-info { font-weight: bold; font-size: 9pt; }
 
-        /* --- FORM --- */
         .form-row { display: flex; align-items: baseline; margin-bottom: 3px; }
         .label { white-space: nowrap; margin-right: 5px; font-size: 10pt; }
         .value { flex: 1; border-bottom: 1px dotted #000; font-weight: bold; padding-left: 5px; font-size: 10pt; }
         
-        /* --- TABLE (Cố định 6 dòng) --- */
         table.stock-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 5px 0; }
         table.stock-table th { border: 1px solid #000; padding: 2px; background: #fff; font-weight: bold; height: 25px; vertical-align: middle;}
         table.stock-table td { border: 1px solid #000; padding: 2px 4px; height: 21px; vertical-align: middle; }
@@ -86,13 +71,12 @@
         .right { text-align: right; }
         .bold { font-weight: bold; }
 
-        /* --- FOOTER --- */
         .money-text { font-weight: normal; font-style: italic; margin-bottom: 2px; font-size: 10pt; margin-top: 2px; }
         
         .signatures { display: flex; justify-content: space-between; text-align: center; margin-top: 10px; }
         .sig-col { flex: 1; }
         .sig-title { font-weight: bold; font-size: 9.5pt; margin-bottom: 2px; }
-        .sig-note { font-style: italic; font-size: 9pt; margin: 0 0 40px 0; } /* Giảm khoảng ký xuống 40px để fit A4 */
+        .sig-note { font-style: italic; font-size: 9pt; margin: 0 0 40px 0; } 
         .sig-name { font-weight: bold; font-size: 9.5pt; }
 
         @media print {
@@ -165,24 +149,36 @@
             
             let totalMoney = 0;
             if (dbData.san_pham.length > 0) {
-                totalMoney = dbData.san_pham.reduce((sum, item) => sum + (Number(item.tt) || 0), 0);
+                // Tính tổng tiền từ cột 'thanhtien' trong JSON mới
+                totalMoney = dbData.san_pham.reduce((sum, item) => sum + (Number(item.thanhtien) || 0), 0);
             } else {
                 totalMoney = Number(params.get('tong_tien') || 0);
             }
 
-            // Render bảng - CỐ ĐỊNH 6 DÒNG
+            // --- XỬ LÝ DỮ LIỆU BẢNG (MAPPING JSON MỚI) ---
             let rowsHtml = '';
             for (let i = 0; i < 6; i++) { 
                 const item = dbData.san_pham[i];
                 if (item) {
+                    // Mapping các trường từ JSON của bạn:
+                    // item.sanpham -> Tên hàng
+                    // item.soluong -> Số lượng
+                    // item.thanhtien -> Thành tiền
+                    
+                    const sl = Number(item.soluong) || 0;
+                    const tt = Number(item.thanhtien) || 0;
+                    
+                    // Vì JSON ko có đơn giá, ta tự tính: ĐG = TT / SL (nếu SL > 0)
+                    const dg = (sl > 0) ? (tt / sl) : 0;
+
                     rowsHtml += `
                         <tr>
                             <td class="center">${i+1}</td>
-                            <td>${item.ten || ''}</td>
-                            <td class="center">${item.dvt || ''}</td>
-                            <td class="center bold">${item.sl || ''}</td>
-                            <td class="right">${(Number(item.dg)||0).toLocaleString('vi-VN')}</td>
-                            <td class="right">${(Number(item.tt)||0).toLocaleString('vi-VN')}</td>
+                            <td>${item.sanpham || ''}</td>
+                            <td class="center">Gói</td>
+                            <td class="center bold">${sl}</td>
+                            <td class="right">${dg.toLocaleString('vi-VN')}</td>
+                            <td class="right">${tt.toLocaleString('vi-VN')}</td>
                         </tr>`;
                 } else {
                     rowsHtml += `<tr><td class="center">${i+1}</td><td></td><td></td><td></td><td></td><td>-</td></tr>`;
@@ -191,7 +187,7 @@
 
             return `
             <div class="voucher-section">
-                <!-- HEADER: Left (Studio) - Right (Số) -->
+                <!-- HEADER -->
                 <div class="header-section">
                     <div class="header-left">
                         <span class="studio-name">${dbData.studio.ten}</span>
@@ -205,14 +201,14 @@
                     </div>
                 </div>
 
-                <!-- TITLE CENTER -->
+                <!-- TITLE -->
                 <div class="title-section">
                     <h1 class="main-title">HÓA ĐƠN THANH TOÁN</h1>
                     <div class="date-sub">${dateStr}</div>
                     <div class="lien-info">Liên ${lienNumber}: ${lienText}</div>
                 </div>
 
-                <!-- FORM BODY -->
+                <!-- BODY -->
                 <div style="flex-grow:1">
                     <div class="form-row">
                         <span class="label">Tên khách hàng:</span>
@@ -287,10 +283,8 @@
 
         function renderApp() {
             const container = document.getElementById('voucher-content');
-            
             const html1 = createVoucherHtml(1, "Lưu nội bộ");
             const html2 = createVoucherHtml(2, "Giao khách hàng");
-
             const separator = `<div class="middle-gap"><div class="cut-line"></div></div>`;
             container.innerHTML = html1 + separator + html2;
             document.title = "HD_" + dbData.meta.id_phieu;
